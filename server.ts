@@ -116,6 +116,29 @@ app.delete('/api/clear-history', (req, res) => {
   res.json({ success: true, assessments });
 });
 
+// 3.5. Create Manual Assessment for New Patient Files
+app.post('/api/manual-assessment', (req, res) => {
+  const { patient_name, primary_stressor, risk_level, clinical_notes } = req.body;
+
+  const newAssessment: Assessment = {
+    id: "assess-" + Date.now(),
+    timestamp: new Date().toISOString(),
+    patient_response: `Clinician consultation logged for patient ${patient_name || 'Anonymous'}.`,
+    clinician_summary: {
+      primary_stressor: primary_stressor || "General Consult",
+      risk_level: risk_level || "Low",
+      clinical_notes: clinical_notes || "No notes logged.",
+      transcript: `Clinician live interaction session logged.`,
+      clinical_score: risk_level === 'High' ? 85 : risk_level === 'Medium' ? 55 : 25
+    },
+    crisis_trigger: risk_level === 'High',
+    acknowledged: false
+  };
+
+  assessments.unshift(newAssessment);
+  res.json(newAssessment);
+});
+
 // 4. Submit Journal (Text input routed directly to Vertex Gemma proxy)
 app.post('/api/analyze-journal', async (req, res) => {
   const { text } = req.body;

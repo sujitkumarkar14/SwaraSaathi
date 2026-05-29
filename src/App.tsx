@@ -111,6 +111,10 @@ export default function App() {
   const [clinicianAudioUrl, setClinicianAudioUrl] = useState<string | null>(null);
   const [recordingTargetPatientId, setRecordingTargetPatientId] = useState<string>('');
   const [notesSaveStatus, setNotesSaveStatus] = useState<string | null>(null);
+  const [isCreatingNewPatient, setIsCreatingNewPatient] = useState<boolean>(false);
+  const [newPatientName, setNewPatientName] = useState<string>('');
+  const [newPatientStressor, setNewPatientStressor] = useState<string>('');
+  const [newPatientRisk, setNewPatientRisk] = useState<'Low' | 'Medium' | 'High'>('Low');
 
   // Speech Recognition and Visualizer Refs
   const recognitionRef = useRef<any>(null);
@@ -457,6 +461,54 @@ export default function App() {
       setNotesSaveStatus(null);
     }, 4000);
   };
+
+  const saveManualSessionNotes = async () => {
+    if (isCreatingNewPatient && !newPatientName.trim()) {
+      alert("Please enter a patient name or identifier.");
+      return;
+    }
+
+    try {
+      if (isCreatingNewPatient) {
+        // Create new patient assessment on the backend
+        const response = await fetch('/api/manual-assessment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patient_name: newPatientName.trim(),
+            primary_stressor: newPatientStressor.trim() || "General Consult",
+            risk_level: newPatientRisk,
+            clinical_notes: `Clinician Live Session Notes (${new Date().toLocaleDateString()}): \n"${clinicianTranscript || 'No transcript recorded.'}"`
+          })
+        });
+
+        if (response.ok) {
+          await fetchHistory();
+          setNotesSaveStatus(`New patient "${newPatientName}" created and session logged successfully!`);
+          
+          // Reset creation form
+          setIsCreatingNewPatient(false);
+          setNewPatientName("");
+          setNewPatientStressor("");
+          setNewPatientRisk("Low");
+          setRecordingTargetPatientId("");
+        } else {
+          alert("Failed to create manual patient record.");
+        }
+      } else {
+        // Logic for existing patient
+        saveSessionNotes();
+      }
+    } catch (e: any) {
+      console.error("Failed to save session notes:", e);
+      alert(`Error saving notes: ${e.message}`);
+    } finally {
+      setTimeout(() => {
+        setNotesSaveStatus(null);
+      }, 4000);
+    }
+  };
+
 
 
 
@@ -982,24 +1034,89 @@ export default function App() {
                   {/* Left Column: Recording Controls */}
                   <div className="flex flex-col justify-between p-4 bg-[#F8F9FA] rounded-2xl border border-slate-200/50">
                     <div>
-                      <label className="text-[10px] text-[#A0A0A0] uppercase font-bold tracking-widest font-mono block mb-2">Associate with Patient</label>
-                      <select
-                        value={recordingTargetPatientId}
-                        onChange={(e) => setRecordingTargetPatientId(e.target.value)}
-                        disabled={isClinicianRecording}
-                        className="w-full px-3 py-2 bg-white text-xs border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-[#4A90E2] cursor-pointer"
-                      >
-                        <option value="">-- Select Target Patient File --</option>
-                        {triageHistory.map(h => (
-                          <option key={h.id} value={h.id}>
-                            {h.clinician_summary.primary_stressor} ({new Date(h.timestamp).toLocaleDateString()} - Risk: {h.clinician_summary.risk_level})
-                          </option>
-                        ))}
-                      </select>
-                      
-                      <p className="text-[10px] text-slate-400 mt-2 italic">
-                        Logs will append directly into this patient's Clinician Notes.
-                      </p>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="text-[10px] text-[#A0A0A0] uppercase font-bold tracking-widest font-mono block">Associate with Patient</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCreatingNewPatient(!isCreatingNewPatient);
+                            setRecordingTargetPatientId("");
+                          }}
+                          disabled={isClinicianRecording}
+                          className="text-[10px] text-[#4A90E2] hover:text-blue-700 font-bold uppercase cursor-pointer transition-colors"
+                        >
+                          {isCreatingNewPatient ? "« Choose Existing" : "+ Add New Patient"}
+                        </button>
+                      </div>
+
+                      {!isCreatingNewPatient ? (
+                        <>
+                          <select
+                            value={recordingTargetPatientId}
+                            onChange={(e) => setRecordingTargetPatientId(e.target.value)}
+                            disabled={isClinicianRecording}
+                            className="w-full px-3 py-2 bg-white text-xs border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-[#4A90E2] cursor-pointer"
+                          >
+                            <option value="">-- Select Target Patient File --</option>
+                            {triageHistory.map(h => (
+                              <option key={h.id} value={h.id}>
+                                {h.clinician_summary.primary_stressor} ({new Date(h.timestamp).toLocaleDateString()} - Risk: {h.clinician_summary.risk_level})
+                              </option>
+                            ))}
+                          </select>
+                          <p className="text-[10px] text-slate-400 mt-2 italic">
+                            Logs will append directly into this patient's Clinician Notes.
+                          </p>
+                        </>
+                      ) : (
+                        <div className="space-y-3 p-3 bg-white border border-slate-200/80 rounded-xl shadow-3xs">
+                          <div>
+                            <label className="text-[9px] font-bold text-slate-500 block mb-1">Patient Name / Identifier</label>
+                            <input
+                              type="text"
+                              value={newPatientName}
+                              onChange={(e) => setNewPatientName(e.target.value)}
+                              placeholder="e.g., Jane Doe"
+                              className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:ring-1 focus:ring-[#4A90E2]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[9px] font-bold text-slate-500 block mb-1">Primary Stressor / Concern</label>
+                            <input
+                              type="text"
+                              value={newPatientStressor}
+                              onChange={(e) => setNewPatientStressor(e.target.value)}
+                              placeholder="e.g., Workplace Burnout"
+                              className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:ring-1 focus:ring-[#4A90E2]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[9px] font-bold text-slate-500 block mb-1">Triage Risk Level</label>
+                            <div className="flex gap-1.5">
+                              {(['Low', 'Medium', 'High'] as const).map((r) => (
+                                <button
+                                  key={r}
+                                  type="button"
+                                  onClick={() => setNewPatientRisk(r)}
+                                  className={`flex-1 py-1 text-[9px] font-bold rounded-md border transition-all cursor-pointer ${
+                                    newPatientRisk === r
+                                      ? r === 'High'
+                                        ? 'bg-red-50 border-red-200 text-red-600 font-extrabold'
+                                        : r === 'Medium'
+                                          ? 'bg-orange-50 border-orange-200 text-orange-600 font-extrabold'
+                                          : 'bg-green-50 border-green-200 text-green-600 font-extrabold'
+                                      : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  {r}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="mt-6 space-y-3">
@@ -1029,13 +1146,14 @@ export default function App() {
                           <audio src={clinicianAudioUrl} controls className="w-full max-h-10 mt-1" />
                           
                           <button
-                            onClick={saveSessionNotes}
+                            onClick={saveManualSessionNotes}
                             className="w-full mt-3 py-2 bg-[#1A1A1A] text-white hover:bg-slate-800 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-colors cursor-pointer"
                           >
-                            Save notes to patient file
+                            {isCreatingNewPatient ? "Create Patient & Save Notes" : "Save notes to patient file"}
                           </button>
                         </div>
                       )}
+
 
                       {notesSaveStatus && (
                         <p className="text-[10px] font-semibold text-green-600 text-center animate-bounce mt-2 bg-green-50 p-2 border border-green-200 rounded-lg">
