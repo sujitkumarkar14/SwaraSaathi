@@ -18,6 +18,7 @@ interface ClinicianSummary {
   risk_level: string; // 'Low' | 'Medium' | 'High'
   clinical_notes: string;
   transcript: string;
+  translated_transcript?: string; // New field for English translation of regional dialects
   clinical_score: number; // Strain / Distress Score strictly for clinician use, hidden from the patient
 }
 
@@ -161,12 +162,13 @@ You must return a strictly conforming JSON object according to the requested res
 
 Response Schema Structure:
 {
-  "patient_response": "An empathetic response directly to the patient validating their experience.",
+  "patient_response": "An empathetic response directly to the patient validating their experience. IMPORTANT: If the patient entry is in a regional Indian language (such as Hindi, Odia, Telugu, Tamil, Bengali, etc.), you MUST write this patient_response entirely in that same local language so they receive native-sounding support.",
   "clinician_summary": {
-    "primary_stressor": "The primary psychological stressor identified from user input (e.g. Work Burnout, Family Stress, Suicidal Ideation, Grief, Panic).",
-    "risk_level": "Assessed level of clinical risk. Must be one of: 'Low', 'Medium', or 'High'.",
-    "clinical_notes": "Professional clinical formulation notes for medical practitioners.",
-    "transcript": "Verbatim transcript of the voice audio; or a copy of the input text if text was provided.",
+    "primary_stressor": "The primary psychological stressor identified from user input (formulated entirely in English, e.g. Workplace Burnout, Grief, Suicidal Ideation).",
+    "risk_level": "Assessed level of clinical risk (in English). Must be one of: 'Low', 'Medium', or 'High'.",
+    "clinical_notes": "Professional clinical formulation notes for medical practitioners (formulated entirely in English).",
+    "transcript": "Verbatim transcript of the input exactly in the original language used by the patient.",
+    "translated_transcript": "A complete, high-quality translation of the patient's transcript into English. If the patient already spoke/wrote in English, this field can be identical to the transcript or left empty.",
     "clinical_score": 50 // Clinical severity score indicating distress level from 1 (completely calm) to 100 (critical active distress).
   },
   "crisis_trigger": false // Set to true ONLY if there is an immediate risk of self-harm, active suicide intent, or physical danger.
@@ -256,6 +258,7 @@ Provide the clinical assessment and empathetic response in the exact JSON format
         risk_level: parsedResult.clinician_summary?.risk_level || "Low",
         clinical_notes: parsedResult.clinician_summary?.clinical_notes || "No additional clinical notes recorded.",
         transcript: parsedResult.clinician_summary?.transcript || transcriptText,
+        translated_transcript: parsedResult.clinician_summary?.translated_transcript || "",
         clinical_score: Number(parsedResult.clinician_summary?.clinical_score) || 50
       },
       crisis_trigger: !!parsedResult.crisis_trigger,

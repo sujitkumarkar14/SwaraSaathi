@@ -30,6 +30,7 @@ interface ClinicianSummary {
   risk_level: string; // 'Low', 'Medium', 'High'
   clinical_notes: string;
   transcript: string;
+  translated_transcript?: string;
   clinical_score: number;
 }
 
@@ -115,6 +116,8 @@ export default function App() {
   const [newPatientName, setNewPatientName] = useState<string>('');
   const [newPatientStressor, setNewPatientStressor] = useState<string>('');
   const [newPatientRisk, setNewPatientRisk] = useState<'Low' | 'Medium' | 'High'>('Low');
+  const [patientLanguage, setPatientLanguage] = useState<string>('en-US');
+  const [clinicianLanguage, setClinicianLanguage] = useState<string>('en-US');
 
   // Speech Recognition and Visualizer Refs
   const recognitionRef = useRef<any>(null);
@@ -191,7 +194,7 @@ export default function App() {
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = 'en-US';
+      recognition.lang = patientLanguage;
 
       recognition.onstart = () => {
         setIsRecording(true);
@@ -318,7 +321,7 @@ export default function App() {
       recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = 'en-US';
+      recognition.lang = clinicianLanguage;
 
       recognition.onstart = () => {
         console.log("[Clinician Voice Recorder] Speech Recognition started.");
@@ -744,6 +747,23 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Language Selector Dropdown (Patient Portal) */}
+              <div className="w-full flex items-center justify-between gap-3 mb-6 px-5 py-3 bg-white rounded-2xl border border-slate-200/60 shadow-2xs max-w-sm">
+                <span className="text-xs text-slate-500 font-bold uppercase tracking-wider font-mono">Journal Language</span>
+                <select
+                  value={patientLanguage}
+                  onChange={(e) => setPatientLanguage(e.target.value)}
+                  disabled={isRecording}
+                  className="bg-transparent text-xs font-semibold text-[#4A90E2] cursor-pointer outline-none focus:ring-0"
+                >
+                  <option value="en-US">English (US)</option>
+                  <option value="hi-IN">Hindi (हिन्दी)</option>
+                  <option value="or-IN">Odia (ଓଡ଼ିଆ)</option>
+                  <option value="te-IN">Telugu (తెలుగు)</option>
+                  <option value="ta-IN">Tamil (தமிழ்)</option>
+                </select>
+              </div>
+
               {/* Patient Voice Journal Recording Space */}
               <button
                 id="btn-record-voice"
@@ -1034,6 +1054,22 @@ export default function App() {
                   {/* Left Column: Recording Controls */}
                   <div className="flex flex-col justify-between p-4 bg-[#F8F9FA] rounded-2xl border border-slate-200/50">
                     <div>
+                      <div className="mb-4">
+                        <label className="text-[10px] text-[#A0A0A0] uppercase font-bold tracking-widest font-mono block mb-2">Session Language</label>
+                        <select
+                          value={clinicianLanguage}
+                          onChange={(e) => setClinicianLanguage(e.target.value)}
+                          disabled={isClinicianRecording}
+                          className="w-full px-3 py-2 bg-white text-xs border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-[#4A90E2] cursor-pointer font-semibold"
+                        >
+                          <option value="en-US">English (US)</option>
+                          <option value="hi-IN">Hindi (हिन्दी)</option>
+                          <option value="or-IN">Odia (ଓଡ଼ିଆ)</option>
+                          <option value="te-IN">Telugu (తెలుగు)</option>
+                          <option value="ta-IN">Tamil (தமிழ்)</option>
+                        </select>
+                      </div>
+
                       <div className="flex justify-between items-center mb-2">
                         <label className="text-[10px] text-[#A0A0A0] uppercase font-bold tracking-widest font-mono block">Associate with Patient</label>
                         <button
@@ -1306,6 +1342,17 @@ export default function App() {
                                 "{summary.transcript}"
                               </p>
                             </div>
+
+                            {/* English Translation (if multilingual) */}
+                            {summary.translated_transcript && summary.translated_transcript !== summary.transcript && (
+                              <div className="mt-3">
+                                <p className="text-[10px] text-[#4A90E2] uppercase font-bold tracking-widest mb-1">English Translation</p>
+                                <p className="text-[11px] font-mono text-[#334E68] bg-[#F0F7FF] p-3.5 rounded-xl border border-[#D0E3F7] leading-relaxed italic">
+                                  "{summary.translated_transcript}"
+                                </p>
+                              </div>
+                            )}
+
 
                             {/* Actions / Dispatch trigger panel */}
                             <div className="pt-2 flex items-center justify-between border-t border-[#F0F0F0]">
