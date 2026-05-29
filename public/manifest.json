@@ -1,0 +1,24 @@
+{
+  "short_name": "SwaraSaathi",
+  "name": "SwaraSaathi Clinical Acoustic Triage",
+  "description": "An offline-capable clinical acoustic audio and written triage Progressive Web App (PWA) powered by Gemma 4.",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/color/192/000000/activity.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://img.icons8.com/color/512/000000/activity.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "theme_color": "#1A1A1A",
+  "background_color": "#F8F9FA",
+  "display": "standalone",
+  "orientation": "portrait"
+}
